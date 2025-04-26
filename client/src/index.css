@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+
+.gradient-bg {
+    background: linear-gradient(to bottom right, #f3e7ff, #fce7f3);
+  }
+  .gradient-button {
+    background: linear-gradient(to right, #a855f7, #ec4899);
+  }
+  .gradient-footer {
+    background: linear-gradient(to right, #a855f7, #ec4899);
+  }
+  .sidebar-gradient {
+    background: linear-gradient(to bottom, #e9d5ff, #f9e2eb);
+  }
+  .glow {
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+  }
