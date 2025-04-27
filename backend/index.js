@@ -8,9 +8,9 @@ const app = express();
 const port = process.env.PORT || 5001;
 
 // Token limit configuration
-const MAX_TOKENS = 1500;
+const MAX_TOKENS = 1600;
 const MAX_STORY_TOKENS = 1000;
-const MAX_AUDIO_TOKENS = 500;
+const MAX_AUDIO_TOKENS = 600;
 
 console.log('Environment Variables:', {
   GROQ_API_KEY: process.env.GROQ_API_KEY ? 'exists' : 'missing',
@@ -89,7 +89,7 @@ app.post('/api/generate-story', async (req, res) => {
           { role: 'user', content: prompt }
         ],
         model: 'llama-3.1-8b-instant',
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: MAX_STORY_TOKENS,
         stream: false
       }),
@@ -107,7 +107,7 @@ app.post('/api/generate-story', async (req, res) => {
     let truncatedStory = story; // Use let for reassignment
     if (truncatedStory.length > MAX_STORY_TOKENS) {
       console.log('Warning: Story exceeds token limit, truncating to', MAX_STORY_TOKENS, 'characters');
-      truncatedStory = truncatedStory.substring(0, MAX_STORY_TOKENS); // Safe reassignment
+      truncatedStory = truncatedStory.substring(0, MAX_STORY_TOKENS); 
     }
 
     console.log('Successfully generated story (length:', truncatedStory.length, 'chars):', truncatedStory);
