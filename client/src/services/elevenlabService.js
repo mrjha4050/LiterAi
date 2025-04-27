@@ -1,63 +1,24 @@
-// services/elevenLabsService.js
-import axios from 'axios';
-
-
-const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const BASE_URL = 'https://api.elevenlabs.io/v1';
-
-export const textToSpeechWithTimestamps = async (text, voiceId = '21m00Tcm4TlvDq8ikWAM') => {
+// client/src/services/elevenlabService.js
+export const convertToAudio = async (text) => {
   try {
-    const response = await axios.post(
-      `${BASE_URL}/text-to-speech/${voiceId}/stream?optimize_streaming_latency=3&output_format=mp3_44100_128`,
-      {
-        text: text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.3,
-          speaker_boost: true
-        }
+    const response = await fetch('http://localhost:5001/api/convert-to-audio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-          'accept': 'audio/mpeg'
-        },
-        responseType: 'blob'
-      }
-    );
+      body: JSON.stringify({ text }),
+      credentials: 'include', 
+    });
 
-    return {
-      audioBlob: response.data,
-      timestamps: await getWordTimestamps(text, voiceId)
-    };
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to generate audio');
+    }
+
+    return data.audio;
   } catch (error) {
-    console.error('Error in text-to-speech:', error);
-    throw error;
-  }
-};
-
-const getWordTimestamps = async (text, voiceId) => {
-  try {
-    const response = await axios.post(
-      `${BASE_URL}/text-to-speech/${voiceId}/stream-timestamps`,
-      {
-        text: text,
-        model_id: "eleven_monolingual_v1"
-      },
-      {
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    return response.data.timestamps;
-  } catch (error) {
-    console.error('Error getting timestamps:', error);
-    return [];
+    console.error('Error calling backend for audio:', error);
+    throw new Error(error.message || 'Failed to generate audio. Please try again.');
   }
 };

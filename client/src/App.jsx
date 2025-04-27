@@ -1,12 +1,15 @@
-import React from 'react'
-import LiterAI from './components/literAi'
-import Footer from './components/footer'
+import { Routes, Route } from 'react-router-dom';
+import React from 'react';
+import LandingPage from './components/landingPage';
+import LiterAI from './components/literAi';
 
-export default function App() {
+function App() {
   return (
-    <div className="flex flex-col min-h-screen gradient-bg">
-    <LiterAI />
-    <Footer />
-  </div>
-  )
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/app" element={<LiterAI />} />
+    </Routes>
+  );
 }
+
+export default App;
