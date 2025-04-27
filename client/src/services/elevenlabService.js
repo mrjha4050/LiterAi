@@ -1,13 +1,14 @@
-// client/src/services/elevenlabService.js
+const BASE_URL = 'https://literai-ce6r.onrender.com';
+
 export const convertToAudio = async (text) => {
   try {
-    const response = await fetch('http://localhost:5001/api/convert-to-audio', {
+    const response = await fetch(`${BASE_URL}/api/convert-to-audio`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ text }),
-      credentials: 'include', 
+      credentials: 'include',
     });
 
     const data = await response.json();

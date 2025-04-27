@@ -5,12 +5,12 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const port = 5001;
+const port = process.env.PORT || 5001;
 
 // Token limit configuration
-const MAX_TOKENS = 1500; // Total token limit per request
-const MAX_STORY_TOKENS = 1000; // Max tokens for story generation
-const MAX_AUDIO_TOKENS = 500; // Max tokens for audio conversion (including overhead)
+const MAX_TOKENS = 1500;
+const MAX_STORY_TOKENS = 1000;
+const MAX_AUDIO_TOKENS = 500;
 
 console.log('Environment Variables:', {
   GROQ_API_KEY: process.env.GROQ_API_KEY ? 'exists' : 'missing',
@@ -20,10 +20,15 @@ console.log('Environment Variables:', {
 // Dynamic CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'https://liter-ai.vercel.app'
+    ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS error: Origin not allowed:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -36,6 +41,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
+// Global error handlers
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', {
     message: error.message,
@@ -98,13 +104,14 @@ app.post('/api/generate-story', async (req, res) => {
       throw new Error('No story generated from API response');
     }
 
-    if (story.length > MAX_STORY_TOKENS) {
+    let truncatedStory = story; // Use let for reassignment
+    if (truncatedStory.length > MAX_STORY_TOKENS) {
       console.log('Warning: Story exceeds token limit, truncating to', MAX_STORY_TOKENS, 'characters');
-      story = story.substring(0, MAX_STORY_TOKENS);
+      truncatedStory = truncatedStory.substring(0, MAX_STORY_TOKENS); // Safe reassignment
     }
 
-    console.log('Successfully generated story (length:', story.length, 'chars):', story);
-    res.json({ story });
+    console.log('Successfully generated story (length:', truncatedStory.length, 'chars):', truncatedStory);
+    res.json({ story: truncatedStory });
   } catch (error) {
     console.error('Groq API error:', {
       message: error.message,
@@ -133,23 +140,24 @@ app.post('/api/convert-to-audio', async (req, res) => {
       throw new Error('ELEVENLABS_API_KEY is not defined in the environment variables');
     }
 
-    if (text.length > MAX_AUDIO_TOKENS) {
+    let truncatedText = text; // Use let for reassignment
+    if (truncatedText.length > MAX_AUDIO_TOKENS) {
       console.log('Warning: Text exceeds token limit, truncating to', MAX_AUDIO_TOKENS, 'characters');
-      text = text.substring(0, MAX_AUDIO_TOKENS);
+      truncatedText = truncatedText.substring(0, MAX_AUDIO_TOKENS); // Safe reassignment
     }
 
-    console.log('Attempting ElevenLabs API call with text (length:', text.length, 'chars):', text);
+    console.log('Attempting ElevenLabs API call with text (length:', truncatedText.length, 'chars):', truncatedText);
 
     const elevenLabsResponse = await Promise.race([
       axios.post(
-        'https://api.elevenlabs.io/v1/text-to-speech/nPczCjzI2devNBz1zQrb/stream?optimize_streaming_latency=3&output_format=mp3_44100_128',
+        'https://api.elevenlabs.io/v1/text-to-speech/UgBBYS2sOqTuMpoF3BR0/stream?optimize_streaming_latency=3&output_format=mp3_44100_128',
         {
-          text: text,
+          text: truncatedText,
           model_id: 'eleven_monolingual_v1',
           voice_settings: {
             stability: 0.9,
-            similarity_boost: 0.50,
-            style: 0.1,
+            similarity_boost: 0.75,
+            style: 0.2,
             speaker_boost: true
           }
         },
@@ -168,7 +176,7 @@ app.post('/api/convert-to-audio', async (req, res) => {
     ]);
 
     const audioBase64 = Buffer.from(elevenLabsResponse.data).toString('base64');
-    console.log('Successfully generated audio (text length:', text.length, 'chars)');
+    console.log('Successfully generated audio (text length:', truncatedText.length, 'chars)');
     res.json({
       audio: `data:audio/mp3;base64,${audioBase64}`
     });
@@ -184,5 +192,5 @@ app.post('/api/convert-to-audio', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Backend server running on http://localhost:${port}`);
+  console.log(`Backend server running on port ${port}`);
 });
