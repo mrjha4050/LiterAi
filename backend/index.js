@@ -85,7 +85,7 @@ app.post('/api/generate-story', async (req, res) => {
     const chatCompletion = await Promise.race([
       groq.chat.completions.create({
         messages: [
-          { role: 'system', content: 'You are a creative fiction writer Stephen King. Generate a very short story (under 1000 characters) based on the user\'s prompt and very appealing and exciting to user .' },
+          { role: 'system', content: 'You are a creative fiction writer Stephen King. Generate a short story (under 1500 characters) based on the user\'s prompt and very appealing and exciting to user .' },
           { role: 'user', content: prompt }
         ],
         model: 'llama-3.1-8b-instant',
@@ -125,7 +125,7 @@ app.post('/api/generate-story', async (req, res) => {
 
 app.post('/api/convert-to-audio', async (req, res) => {
   console.log('Received request to /api/convert-to-audio from:', req.ip);
-  console.log('Request body:', req.body);
+  // console.log('Request body:', req.body);
 
   const { text } = req.body;
 
