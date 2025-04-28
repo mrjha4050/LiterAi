@@ -8,9 +8,9 @@ const app = express();
 const port = process.env.PORT || 5001;
 
 // Token limit configuration
-const MAX_TOKENS = 2000;
+const MAX_TOKENS = 2500;
 const MAX_STORY_TOKENS = 1000;
-const MAX_AUDIO_TOKENS = 1000;
+const MAX_AUDIO_TOKENS = 1500;
 
 console.log('Environment Variables:', {
   GROQ_API_KEY: process.env.GROQ_API_KEY ? 'exists' : 'missing',
