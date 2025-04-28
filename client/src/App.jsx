@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import React from 'react';
 import LandingPage from './components/landingPage';
 import LiterAI from './components/literAi';
+import { Analytics } from "@vercel/analytics/react"
 
 function App() {
   return (
