@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { generateStory } from '../services/groqService';
 import { convertToAudio } from '../services/elevenlabService';
 import Logo from './logo';
 import Footer from './footer';
+import { auth, signInWithPopup, googleProvider, signOut, onAuthStateChanged } from '../services/firebase';
 
 const genres = [
   { name: 'Fantasy', description: 'Dive into magical realms with dragons, wizards, and epic quests.', color: 'from-purple-200 to-pink-300' },
@@ -20,6 +22,7 @@ const sampleStories = {
   Horror: 'In the abandoned mansion on Blackwood Hill, Sarah heard whispers in the dark, drawing her closer to a terrifying truth...',
 };
 
+
 const LiterAI = () => {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [prompt, setPrompt] = useState('');
@@ -27,13 +30,88 @@ const LiterAI = () => {
   const [audioSrc, setAudioSrc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(true);
+  const [authError, setAuthError] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log('useEffect: Initializing auth check...');
+
+    const handleAuth = async () => {
+      setIsAuthLoading(true);
+      console.log('handleAuth: Checking auth state...');
+
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        console.log('onAuthStateChanged: User state:', currentUser ? currentUser.email : 'null');
+        if (currentUser) {
+          setUser(currentUser);
+          setShowLoginModal(false);
+        } else if (!user) {
+          setShowLoginModal(true);
+        }
+        setIsAuthLoading(false);
+      });
+
+      return unsubscribe;
+    };
+
+    handleAuth()
+      .then(unsubscribe => {
+        console.log('useEffect: Auth setup complete, setting cleanup');
+        return () => {
+          console.log('useEffect: Cleaning up auth listener');
+          unsubscribe();
+        };
+      })
+      .catch(err => {
+        console.error('useEffect: Auth setup error:', err);
+        setIsAuthLoading(false);
+      });
+  }, [user]);
+
+  const handleGoogleAuth = async () => {
+    try {
+      console.log('handleGoogleAuth: Initiating popup sign-in...');
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('handleGoogleAuth: Popup result:', result);
+      if (result.user) {
+        setUser(result.user);
+        setShowLoginModal(false);
+      }
+    } catch (err) {
+      console.error('handleGoogleAuth: Error:', err);
+      setAuthError('Authentication failed: ' + err.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      console.log('handleLogout: Signing out...');
+      await signOut(auth);
+      setStory('');
+      setAudioSrc('');
+      setPrompt('');
+      setSelectedGenre(null);
+      setShowLoginModal(false);
+      navigate('/');
+    } catch (err) {
+      console.error('handleLogout: Error:', err);
+      setAuthError('Logout failed: Try again ' + err.message);
+    }
+  };
 
   const handleGenerateStory = async () => {
+    if (!user) {
+      console.log('handleGenerateStory: No user, showing login');
+      setShowLoginModal(true);
+      return;
+    }
     if (!selectedGenre) {
       setError('Please select a genre!');
       return;
     }
-
     if (!prompt.trim()) {
       setError('Please enter a prompt!');
       return;
@@ -41,21 +119,26 @@ const LiterAI = () => {
 
     setError('');
     setIsLoading(true);
-
     const fullPrompt = `Write a short ${selectedGenre} story about: ${prompt}`;
 
     try {
-      const generatedStory = await generateStory(fullPrompt);
+      const idToken = await user.getIdToken();
+      const generatedStory = await generateStory(fullPrompt, idToken);
       setStory(generatedStory);
       setAudioSrc('');
     } catch (err) {
-      setError(err.message || 'Failed to generate story. Please try again.');
+      setError(err.message || 'Failed to generate story.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGenerateAudio = async () => {
+    if (!user) {
+      console.log('handleGenerateAudio: No user, showing login');
+      setShowLoginModal(true);
+      return;
+    }
     if (!story) {
       setError('Please generate a story first!');
       return;
@@ -65,16 +148,23 @@ const LiterAI = () => {
     setIsLoading(true);
 
     try {
-      const audio = await convertToAudio(story);
+      const idToken = await user.getIdToken();
+      const audio = await convertToAudio(story, idToken);
+      console.log('handleGenerateAudio: Audio URL:', audio);
       setAudioSrc(audio);
     } catch (err) {
-      setError(err.message || 'Failed to generate audio. Please try again.');
+      setError(err.message || 'Failed to generate audio.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGenreClick = (genre) => {
+    if (!user) {
+      console.log('handleGenreClick: No user, showing login');
+      setShowLoginModal(true);
+      return;
+    }
     setSelectedGenre(genre);
     setError('');
   };
@@ -87,16 +177,54 @@ const LiterAI = () => {
     };
   }, [audioSrc]);
 
+  // const getUserInitial = (user) => {
+  //   if (!user || !user.displayName) return 'U';
+  //   return user.displayName.charAt(0).toUpperCase();
+  // };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
+        <p className="text-purple-600 text-lg">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col">
-      {/* Improved Header */}
-      <header className="w-full bg-gradient-to-r from-purple-100 to-pink-100 shadow-sm py-3 md:py-4 flex justify-center items-center border-b border-purple-200">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative">
+      <header className="w-full bg-gradient-to-r from-purple-100 to-pink-100 shadow-sm py-3 md:py-4 flex justify-between items-center border-b border-purple-200 px-4">
         <div className="flex items-center space-x-2 md:space-x-3">
           <Logo className="h-7 w-7 md:h-9 md:w-9 text-purple-600" />
         </div>
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {user && (
+            <>
+              <button
+                onClick={handleLogout}
+                className="text-sm md:text-base text-purple-600 hover:text-purple-800"
+              >
+                Log Out
+              </button>
+              <div className="flex items-center">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="User profile"
+                    className="h-8 w-8 md:h-10 md:w-10 rounded-full border-2 border-purple-300"
+                  />
+                ) : (
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-purple-300 flex items-center justify-center text-white font-semibold text-sm md:text-base border-2 border-purple-300">
+                    {/* {getUserInitial(user)} */}
+                    {user.email.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
-      <div className="flex flex-col md:flex-row flex-1">
+      <div className={`flex flex-col md:flex-row flex-1 ${!user ? 'blur-md' : ''}`}>
         <div className="w-full md:w-1/4 p-4 md:p-6 bg-gradient-to-b from-purple-200 to-pink-200 shadow-lg">
           <h2 className="text-xl md:text-2xl font-semibold text-purple-800 mb-4">Explore Genres</h2>
           <div className="grid grid-cols-1 gap-3">
@@ -105,9 +233,9 @@ const LiterAI = () => {
                 key={genre.name}
                 className={`p-3 md:p-4 rounded-lg cursor-pointer transition-all duration-300 shadow-md ${
                   selectedGenre === genre.name
-                  ? `bg-gradient-to-r ${genre.color} text-white glow`
-                  : 'bg-white text-gray-800 hover:bg-gray-50'
-              }`}
+                    ? `bg-gradient-to-r ${genre.color} text-white glow`
+                    : 'bg-white text-gray-800 hover:bg-gray-50'
+                }`}
                 onClick={() => handleGenreClick(genre.name)}
               >
                 <h3 className="text-base md:text-lg font-medium">{genre.name}</h3>
@@ -117,7 +245,6 @@ const LiterAI = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="flex-1 p-3 md:p-5">
           <p className="text-center text-gray-600 text-xs md:text-sm mb-2 md:mb-4">
             Unleash your imagination and craft a story in any genre!
@@ -141,9 +268,9 @@ const LiterAI = () => {
                   key={genre.name}
                   className={`px-2 py-1 md:px-3 md:py-1.5 rounded-lg shadow-sm transition-all duration-300 text-xs md:text-sm ${
                     selectedGenre === genre.name
-                    ? `bg-gradient-to-r ${genre.color} text-white glow`
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                } focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                      ? `bg-gradient-to-r ${genre.color} text-white glow`
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  } focus:outline-none focus:ring-2 focus:ring-purple-500`}
                   onClick={() => handleGenreClick(genre.name)}
                 >
                   {genre.name}
@@ -164,14 +291,7 @@ const LiterAI = () => {
                     fill="none"
                     viewBox="0 0 24 24"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                   </svg>
                   Generating...
@@ -181,11 +301,7 @@ const LiterAI = () => {
               )}
             </button>
 
-            {error && (
-              <div className="mt-2 md:mt-3 text-red-500 text-center text-xs md:text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="mt-2 md:mt-3 text-red-500 text-center text-xs md:text-sm">{error}</div>}
 
             <div className="mt-2 md:mt-4">
               <textarea
@@ -211,14 +327,7 @@ const LiterAI = () => {
                       fill="none"
                       viewBox="0 0 24 24"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                     Generating...
@@ -251,10 +360,7 @@ const LiterAI = () => {
             <h2 className="text-lg md:text-xl font-medium text-purple-700 mb-2 md:mb-4 text-center">Sample Stories</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
               {Object.entries(sampleStories).map(([genre, snippet]) => (
-                <div
-                  key={genre}
-                  className="p-2 md:p-3 bg-white bg-opacity-80 rounded-lg shadow-sm border-l-2 border-purple-300"
-                >
+                <div key={genre} className="p-2 md:p-3 bg-white bg-opacity-80 rounded-lg shadow-sm border-l-2 border-purple-300">
                   <h3 className="text-sm md:text-base font-medium text-purple-600">{genre}</h3>
                   <p className="text-gray-600 text-xs md:text-sm">{snippet}</p>
                 </div>
@@ -263,7 +369,26 @@ const LiterAI = () => {
           </div>
         </div>
       </div>
-      <Footer/>
+
+      {showLoginModal && (
+        <div className="absolute inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg">
+            <h2 className="text-xl font-semibold text-purple-800 mb-4 text-center">Log In to LiterAI</h2>
+            <p className="text-sm text-gray-600 mb-4 text-center">
+              Sign in or create an account with Google to start crafting your stories.
+            </p>
+            <button
+              onClick={handleGoogleAuth}
+              className="w-full bg-gradient-to-r from-indigo-400 to-purple-600 text-white py-2 rounded-lg hover:opacity-90 focus:outline-none focus:ring-8 focus:ring-purple-100"
+            >
+              Log In with Google
+            </button>
+            {authError && <p className="mt-3 text-red-500 text-center text-sm">{authError}</p>}
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </div>
   );
 };
