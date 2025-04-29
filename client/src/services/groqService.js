@@ -1,5 +1,5 @@
-// const BASE_URL = 'https://literai-ce6r.onrender.com';
-const BASE_URL = 'http://localhost:5001';
+const BASE_URL = 'https://literai-ce6r.onrender.com';
+// const BASE_URL = 'http://localhost:5001';
 
 export const generateStory = async (prompt, idToken) => {
   try {
