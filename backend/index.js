@@ -24,9 +24,9 @@ const port = process.env.PORT || 5001;
 // In-memory cache for common phrases
 const audioCache = new Map();
 
-// Middleware to verify Firebase ID token
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+  console.log("authHeader:", authHeader);
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
@@ -48,7 +48,6 @@ console.log('Environment Variables:', {
   FIREBASE_SERVICE_ACCOUNT: process.env.FIREBASE_SERVICE_ACCOUNT ? 'exists' : 'missing'
 });
 
-// Dynamic CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
@@ -72,7 +71,6 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
-// Global error handlers
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', {
     message: error.message,
@@ -84,7 +82,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Health check endpoint (no auth required)
 app.get('/api/health', (req, res) => {
   console.log('Health check requested from:', req.ip);
   res.status(200).json({ status: 'OK', message: 'Backend service is running' });
@@ -94,7 +91,6 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-// Common phrases to cache
 const commonPhrases = [
   'Once upon a time',
   'The end.',
@@ -103,7 +99,6 @@ const commonPhrases = [
   'My name is Emily'
 ];
 
-// Pre-cache common phrases on server start
 const cacheCommonPhrases = async () => {
   for (const phrase of commonPhrases) {
     try {
@@ -137,10 +132,8 @@ const cacheCommonPhrases = async () => {
   }
 };
 
-// Run caching on server start
 cacheCommonPhrases();
 
-// Utility to shorten text by removing filler words
 const shortenText = (text) => {
   const fillerWords = /\b(very|really|just|quite|so|basically|actually)\b/gi;
   return text.replace(fillerWords, '').replace(/\s+/g, ' ').trim();

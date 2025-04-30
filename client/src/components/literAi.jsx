@@ -134,6 +134,7 @@ const LiterAI = () => {
   };
 
   const handleGenerateAudio = async () => {
+    const user = auth.currentUser;
     if (!user) {
       console.log('handleGenerateAudio: No user, showing login');
       setShowLoginModal(true);
@@ -147,8 +148,8 @@ const LiterAI = () => {
     setError('');
     setIsLoading(true);
 
+    const idToken = await user.getIdToken();
     try {
-      const idToken = await user.getIdToken();
       const audio = await convertToAudio(story, idToken);
       console.log('handleGenerateAudio: Audio URL:', audio);
       setAudioSrc(audio);
@@ -201,7 +202,7 @@ const LiterAI = () => {
             <>
               <button
                 onClick={handleLogout}
-                className="text-sm md:text-base text-purple-600 hover:text-purple-800"
+                className="text-sm md:text-base bg-pink-600 text-white hover:text-purple-800 hover:border-purple-800 px-2 md:px-4 py-1 md:py-2 rounded-lg"
               >
                 Log Out
               </button>
