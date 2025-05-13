@@ -178,21 +178,17 @@ const LiterAI = () => {
     };
   }, [audioSrc]);
 
-  // const getUserInitial = (user) => {
-  //   if (!user || !user.displayName) return 'U';
-  //   return user.displayName.charAt(0).toUpperCase();
-  // };
 
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
-        <p className="text-purple-600 text-lg">Loading...</p>
+        <span className="loading loading-infinity loading-xl"></span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative animation-fadeIn(slow)">
       <header className="w-full bg-gradient-to-r from-purple-100 to-pink-100 shadow-sm py-3 md:py-4 flex justify-between items-center border-b border-purple-200 px-4">
         <div className="flex items-center space-x-2 md:space-x-3">
           <Logo className="h-7 w-7 md:h-9 md:w-9 text-purple-600" />
@@ -286,6 +282,7 @@ const LiterAI = () => {
             >
               {isLoading ? (
                 <>
+
                   <svg
                     className="animate-spin h-3 w-3 md:h-4 md:w-4 mr-1 text-white"
                     xmlns="http://www.w3.org/2000/svg"
