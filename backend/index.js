@@ -162,12 +162,12 @@ app.post('/api/generate-story', authenticateToken, async (req, res) => {
     const chatCompletion = await Promise.race([
       groq.chat.completions.create({
         messages: [
-          { role: 'system', content: 'You are a creative fiction and realismwriter. Generate a very short story (under 1500 characters) based on the user\'s prompt.' },
+          { role: 'system', content: 'As a writer of fiction and realism in the vein of William Shakespeare, craft a brief tale (under 2000 characters) inspired by the user\'s prompt...' },
           { role: 'user', content: prompt }
         ],
         model: 'llama-3.1-8b-instant',
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 2000,
         stream: false
       }),
       new Promise((_, reject) =>
